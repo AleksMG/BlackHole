@@ -1,49 +1,445 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Стеганография: скрытие бинарного кода в изображении</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StegoApp | Скрытие сообщений в изображениях</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        canvas { border: 1px solid #000; margin: 10px 0; max-width: 500px; }
-        .container { display: flex; gap: 20px; }
-        .column { flex: 1; }
-        button { margin: 5px 0; padding: 8px; background: #4CAF50; color: white; border: none; cursor: pointer; }
-        textarea { width: 100%; height: 80px; }
-        input[type="file"] { margin: 10px 0; }
+        :root {
+            --primary: #6200ee;
+            --primary-dark: #3700b3;
+            --secondary: #03dac6;
+            --error: #b00020;
+            --background: #f5f5f5;
+            --surface: #ffffff;
+            --on-surface: #212121;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--on-surface);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .logo i {
+            font-size: 28px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            font-size: 22px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .file-upload {
+            border: 2px dashed #bdbdbd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+        }
+
+        .file-upload i {
+            font-size: 48px;
+            color: #757575;
+            margin-bottom: 10px;
+        }
+
+        .file-upload p {
+            color: #757575;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .preview-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .textarea-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: var(--on-surface);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        .btn i {
+            font-size: 18px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filename-input {
+            margin-top: 15px;
+        }
+
+        .filename-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .filename-input input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        .filename-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .alert-error {
+            background-color: #ffebee;
+            color: var(--error);
+            border: 1px solid #ffcdd2;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 0;
+            color: #757575;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <h1>Стеганография (LSB-метод)</h1>
     <div class="container">
-        <div class="column">
-            <h2>1. Скрыть сообщение в изображении</h2>
-            <input type="file" id="originalImage" accept="image/png, image/jpeg"><br>
-            <textarea id="secretMessage" placeholder="Введите секретное сообщение..."></textarea><br>
-            <button onclick="hideMessage()">Спрятать сообщение</button>
-            <canvas id="encodedCanvas"></canvas>
-            <button onclick="downloadImage()" id="downloadBtn" disabled>Скачать изображение</button>
+        <header>
+            <div class="logo">
+                <i class="fas fa-lock"></i>
+                <span>StegoApp</span>
+            </div>
+        </header>
+
+        <div class="alert alert-success" id="successAlert">
+            Операция выполнена успешно!
         </div>
-        
-        <div class="column">
-            <h2>2. Извлечь сообщение из изображения</h2>
-            <input type="file" id="encodedImage" accept="image/png, image/jpeg"><br>
-            <button onclick="extractMessage()">Извлечь сообщение</button>
-            <p id="extractedMessage"></p>
-            <canvas id="decodedCanvas"></canvas>
+
+        <div class="alert alert-error" id="errorAlert">
+            Произошла ошибка! Проверьте введенные данные.
         </div>
+
+        <div class="grid">
+            <!-- Блок скрытия сообщения -->
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-eye-slash"></i>
+                    Скрыть сообщение
+                </h2>
+
+                <div class="file-upload" id="hideUpload">
+                    <i class="fas fa-image"></i>
+                    <p>Перетащите изображение или кликните для выбора</p>
+                    <input type="file" id="hideImageInput" accept="image/png, image/jpeg">
+                </div>
+
+                <div class="preview-container hidden" id="hidePreviewContainer">
+                    <img id="hidePreviewImage" class="preview-image">
+                </div>
+
+                <div class="textarea-wrapper">
+                    <textarea id="secretMessage" placeholder="Введите секретное сообщение..."></textarea>
+                </div>
+
+                <div class="filename-input">
+                    <label for="outputFilename">Имя файла (без расширения):</label>
+                    <input type="text" id="outputFilename" placeholder="secret_image">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" id="hideBtn">
+                        <i class="fas fa-lock"></i>
+                        Скрыть сообщение
+                    </button>
+                    <button class="btn btn-secondary" id="hideResetBtn">
+                        <i class="fas fa-redo"></i>
+                        Сбросить
+                    </button>
+                </div>
+            </div>
+
+            <!-- Блок извлечения сообщения -->
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-eye"></i>
+                    Извлечь сообщение
+                </h2>
+
+                <div class="file-upload" id="extractUpload">
+                    <i class="fas fa-image"></i>
+                    <p>Перетащите изображение или кликните для выбора</p>
+                    <input type="file" id="extractImageInput" accept="image/png, image/jpeg">
+                </div>
+
+                <div class="preview-container hidden" id="extractPreviewContainer">
+                    <img id="extractPreviewImage" class="preview-image">
+                </div>
+
+                <div class="textarea-wrapper">
+                    <textarea id="extractedMessage" placeholder="Здесь появится извлеченное сообщение..." readonly></textarea>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" id="extractBtn">
+                        <i class="fas fa-unlock"></i>
+                        Извлечь сообщение
+                    </button>
+                    <button class="btn btn-secondary" id="extractResetBtn">
+                        <i class="fas fa-redo"></i>
+                        Сбросить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            StegoApp &copy; 2023 | LSB-стеганография | Сообщения скрываются в младших битах изображения
+        </footer>
     </div>
 
     <script>
-        // Глобальные переменные
-        let encodedImageData = null;
+        // DOM элементы
+        const elements = {
+            hideUpload: document.getElementById('hideUpload'),
+            hideImageInput: document.getElementById('hideImageInput'),
+            hidePreviewContainer: document.getElementById('hidePreviewContainer'),
+            hidePreviewImage: document.getElementById('hidePreviewImage'),
+            secretMessage: document.getElementById('secretMessage'),
+            outputFilename: document.getElementById('outputFilename'),
+            hideBtn: document.getElementById('hideBtn'),
+            hideResetBtn: document.getElementById('hideResetBtn'),
+            extractUpload: document.getElementById('extractUpload'),
+            extractImageInput: document.getElementById('extractImageInput'),
+            extractPreviewContainer: document.getElementById('extractPreviewContainer'),
+            extractPreviewImage: document.getElementById('extractPreviewImage'),
+            extractedMessage: document.getElementById('extractedMessage'),
+            extractBtn: document.getElementById('extractBtn'),
+            extractResetBtn: document.getElementById('extractResetBtn'),
+            successAlert: document.getElementById('successAlert'),
+            errorAlert: document.getElementById('errorAlert')
+        };
 
-        // 1. Скрытие сообщения в изображении (LSB-метод)
+        // Обработчики событий
+        elements.hideImageInput.addEventListener('change', handleHideImageUpload);
+        elements.extractImageInput.addEventListener('change', handleExtractImageUpload);
+        elements.hideBtn.addEventListener('click', hideMessage);
+        elements.extractBtn.addEventListener('click', extractMessage);
+        elements.hideResetBtn.addEventListener('click', resetHideForm);
+        elements.extractResetBtn.addEventListener('click', resetExtractForm);
+
+        // Drag and Drop
+        setupDragAndDrop(elements.hideUpload, elements.hideImageInput);
+        setupDragAndDrop(elements.extractUpload, elements.extractImageInput);
+
+        // Функции
+        function handleHideImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                displayImagePreview(file, elements.hidePreviewImage, elements.hidePreviewContainer);
+            }
+        }
+
+        function handleExtractImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                displayImagePreview(file, elements.extractPreviewImage, elements.extractPreviewContainer);
+            }
+        }
+
+        function displayImagePreview(file, imgElement, container) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imgElement.src = e.target.result;
+                container.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setupDragAndDrop(dropZone, inputElement) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#6200ee';
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = '#bdbdbd';
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = '#bdbdbd';
+                
+                if (e.dataTransfer.files.length) {
+                    inputElement.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    inputElement.dispatchEvent(event);
+                }
+            });
+        }
+
+        function showAlert(alertElement, message) {
+            alertElement.textContent = message;
+            alertElement.style.display = 'block';
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+
         function hideMessage() {
-            const fileInput = document.getElementById('originalImage');
-            const message = document.getElementById('secretMessage').value;
-            
-            if (!fileInput.files[0] || !message) {
-                alert("Загрузите изображение и введите сообщение!");
+            const imageFile = elements.hideImageInput.files[0];
+            const message = elements.secretMessage.value;
+            const filename = elements.outputFilename.value || 'secret_image';
+
+            if (!imageFile) {
+                showAlert(elements.errorAlert, 'Пожалуйста, выберите изображение!');
+                return;
+            }
+
+            if (!message) {
+                showAlert(elements.errorAlert, 'Пожалуйста, введите сообщение!');
                 return;
             }
 
@@ -51,34 +447,32 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const canvas = document.getElementById('encodedCanvas');
+                    const canvas = document.createElement('canvas');
                     canvas.width = img.width;
                     canvas.height = img.height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
                     
-                    // Преобразуем сообщение в бинарный формат
+                    // Преобразуем сообщение в бинарный формат + маркер конца
                     const binaryMessage = message.split('')
                         .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
-                        .join('') + '00000000'; // Маркер конца сообщения
+                        .join('') + '0000000000000000'; // Два нулевых байта как маркер
                     
-                    // Получаем данные изображения
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const data = imageData.data;
                     
-                    // Проверяем, поместится ли сообщение
+                    // Проверка вместимости
                     if (binaryMessage.length > data.length * 0.25) {
-                        alert("Сообщение слишком длинное для этого изображения!");
+                        showAlert(elements.errorAlert, 'Сообщение слишком длинное для этого изображения!');
                         return;
                     }
                     
-                    // Встраиваем сообщение в LSB (младшие биты)
+                    // Встраивание сообщения
                     let messageIndex = 0;
                     for (let i = 0; i < data.length; i += 4) {
                         if (messageIndex >= binaryMessage.length) break;
                         
-                        // Модифицируем LSB каждого цветового канала (R, G, B)
-                        for (let j = 0; j < 3; j++) {
+                        for (let j = 0; j < 3; j++) { // RGB каналы
                             if (messageIndex < binaryMessage.length) {
                                 data[i + j] = (data[i + j] & 0xFE) | parseInt(binaryMessage[messageIndex]);
                                 messageIndex++;
@@ -87,19 +481,25 @@
                     }
                     
                     ctx.putImageData(imageData, 0, 0);
-                    encodedImageData = canvas.toDataURL('image/png');
-                    document.getElementById('downloadBtn').disabled = false;
+                    
+                    // Сохранение с указанным именем
+                    const link = document.createElement('a');
+                    link.download = `${filename}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    showAlert(elements.successAlert, 'Сообщение успешно скрыто в изображении!');
                 };
                 img.src = e.target.result;
             };
-            reader.readAsDataURL(fileInput.files[0]);
+            reader.readAsDataURL(imageFile);
         }
 
-        // 2. Извлечение сообщения из изображения
         function extractMessage() {
-            const fileInput = document.getElementById('encodedImage');
-            if (!fileInput.files[0]) {
-                alert("Загрузите изображение!");
+            const imageFile = elements.extractImageInput.files[0];
+            
+            if (!imageFile) {
+                showAlert(elements.errorAlert, 'Пожалуйста, выберите изображение!');
                 return;
             }
 
@@ -107,52 +507,61 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const canvas = document.getElementById('decodedCanvas');
+                    const canvas = document.createElement('canvas');
                     canvas.width = img.width;
                     canvas.height = img.height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
                     
-                    // Извлекаем биты из LSB
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const data = imageData.data;
                     let binaryMessage = '';
                     let message = '';
+                    let nullBytes = 0;
                     
                     for (let i = 0; i < data.length; i += 4) {
-                        // Читаем LSB каждого цветового канала
-                        for (let j = 0; j < 3; j++) {
+                        for (let j = 0; j < 3; j++) { // RGB каналы
                             binaryMessage += (data[i + j] & 1).toString();
                             
-                            // Проверяем на маркер конца сообщения (8 нулей)
+                            // Когда накопился полный байт (8 бит)
                             if (binaryMessage.length % 8 === 0) {
                                 const byte = binaryMessage.substr(-8);
-                                if (byte === '00000000') {
-                                    // Преобразуем бинарную строку в текст
-                                    for (let k = 0; k < binaryMessage.length - 8; k += 8) {
-                                        const charCode = parseInt(binaryMessage.substr(k, 8), 2);
-                                        message += String.fromCharCode(charCode);
+                                const charCode = parseInt(byte, 2);
+                                
+                                if (charCode === 0) {
+                                    nullBytes++;
+                                    if (nullBytes >= 2) { // Два нулевых байта = конец
+                                        elements.extractedMessage.value = message;
+                                        showAlert(elements.successAlert, 'Сообщение успешно извлечено!');
+                                        return;
                                     }
-                                    document.getElementById('extractedMessage').textContent = message;
-                                    return;
+                                } else {
+                                    nullBytes = 0;
+                                    message += String.fromCharCode(charCode);
                                 }
                             }
                         }
                     }
+                    
+                    elements.extractedMessage.value = "Не удалось найти сообщение или оно повреждено";
+                    showAlert(elements.errorAlert, 'Маркер конца сообщения не найден!');
                 };
                 img.src = e.target.result;
             };
-            reader.readAsDataURL(fileInput.files[0]);
+            reader.readAsDataURL(imageFile);
         }
 
-        // 3. Скачивание изображения со скрытым сообщением
-        function downloadImage() {
-            if (!encodedImageData) return;
-            
-            const link = document.createElement('a');
-            link.download = 'secret_image.png';
-            link.href = encodedImageData;
-            link.click();
+        function resetHideForm() {
+            elements.hideImageInput.value = '';
+            elements.hidePreviewContainer.classList.add('hidden');
+            elements.secretMessage.value = '';
+            elements.outputFilename.value = '';
+        }
+
+        function resetExtractForm() {
+            elements.extractImageInput.value = '';
+            elements.extractPreviewContainer.classList.add('hidden');
+            elements.extractedMessage.value = '';
         }
     </script>
 </body>
