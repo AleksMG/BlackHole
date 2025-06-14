@@ -4,62 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StegoApp | Скрытие сообщений в изображениях</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #6200ee;
-            --primary-dark: #3700b3;
-            --secondary: #03dac6;
-            --error: #b00020;
-            --background: #f5f5f5;
-            --surface: #ffffff;
-            --on-surface: #212121;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--background);
-            color: var(--on-surface);
+            background-color: #f5f5f5;
+            color: #212121;
             line-height: 1.6;
+            padding: 20px;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
         }
 
         header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             padding: 20px 0;
-            border-bottom: 1px solid #e0e0e0;
             margin-bottom: 30px;
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
             font-size: 24px;
-            font-weight: 500;
-            color: var(--primary);
-        }
-
-        .logo i {
-            font-size: 28px;
+            font-weight: bold;
+            color: #6200ee;
         }
 
         .card {
-            background-color: var(--surface);
+            background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 25px;
@@ -69,14 +49,7 @@
         .card-title {
             font-size: 20px;
             margin-bottom: 20px;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-title i {
-            font-size: 22px;
+            color: #6200ee;
         }
 
         .grid {
@@ -102,17 +75,7 @@
         }
 
         .file-upload:hover {
-            border-color: var(--primary);
-        }
-
-        .file-upload i {
-            font-size: 48px;
-            color: #757575;
-            margin-bottom: 10px;
-        }
-
-        .file-upload p {
-            color: #757575;
+            border-color: #6200ee;
         }
 
         .file-upload input {
@@ -142,52 +105,41 @@
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             resize: vertical;
-            font-family: inherit;
             font-size: 16px;
         }
 
         textarea:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: #6200ee;
         }
 
         .btn {
-            background-color: var(--primary);
+            background-color: #6200ee;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 12px 24px;
             font-size: 16px;
-            font-weight: 500;
             cursor: pointer;
             transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .btn:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-2px);
+            background-color: #3700b3;
         }
 
         .btn-secondary {
             background-color: #f5f5f5;
-            color: var(--on-surface);
+            color: #212121;
         }
 
         .btn-secondary:hover {
             background-color: #e0e0e0;
         }
 
-        .btn i {
-            font-size: 18px;
-        }
-
         .btn-group {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
         }
 
         .filename-input {
@@ -197,7 +149,7 @@
         .filename-input label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
+            font-weight: bold;
         }
 
         .filename-input input {
@@ -205,13 +157,12 @@
             padding: 10px 15px;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            font-family: inherit;
             font-size: 16px;
         }
 
         .filename-input input:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: #6200ee;
         }
 
         .alert {
@@ -229,7 +180,7 @@
 
         .alert-error {
             background-color: #ffebee;
-            color: var(--error);
+            color: #b00020;
             border: 1px solid #ffcdd2;
         }
 
@@ -248,30 +199,18 @@
 <body>
     <div class="container">
         <header>
-            <div class="logo">
-                <i class="fas fa-lock"></i>
-                <span>StegoApp</span>
-            </div>
+            <div class="logo">StegoApp</div>
         </header>
 
-        <div class="alert alert-success" id="successAlert">
-            Операция выполнена успешно!
-        </div>
-
-        <div class="alert alert-error" id="errorAlert">
-            Произошла ошибка! Проверьте введенные данные.
-        </div>
+        <div class="alert alert-success" id="successAlert"></div>
+        <div class="alert alert-error" id="errorAlert"></div>
 
         <div class="grid">
             <!-- Блок скрытия сообщения -->
             <div class="card">
-                <h2 class="card-title">
-                    <i class="fas fa-eye-slash"></i>
-                    Скрыть сообщение
-                </h2>
+                <h2 class="card-title">Скрыть сообщение</h2>
 
                 <div class="file-upload" id="hideUpload">
-                    <i class="fas fa-image"></i>
                     <p>Перетащите изображение или кликните для выбора</p>
                     <input type="file" id="hideImageInput" accept="image/png, image/jpeg">
                 </div>
@@ -290,26 +229,16 @@
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn" id="hideBtn">
-                        <i class="fas fa-lock"></i>
-                        Скрыть сообщение
-                    </button>
-                    <button class="btn btn-secondary" id="hideResetBtn">
-                        <i class="fas fa-redo"></i>
-                        Сбросить
-                    </button>
+                    <button class="btn" id="hideBtn">Скрыть сообщение</button>
+                    <button class="btn btn-secondary" id="hideResetBtn">Сбросить</button>
                 </div>
             </div>
 
             <!-- Блок извлечения сообщения -->
             <div class="card">
-                <h2 class="card-title">
-                    <i class="fas fa-eye"></i>
-                    Извлечь сообщение
-                </h2>
+                <h2 class="card-title">Извлечь сообщение</h2>
 
                 <div class="file-upload" id="extractUpload">
-                    <i class="fas fa-image"></i>
                     <p>Перетащите изображение или кликните для выбора</p>
                     <input type="file" id="extractImageInput" accept="image/png, image/jpeg">
                 </div>
@@ -323,20 +252,14 @@
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn" id="extractBtn">
-                        <i class="fas fa-unlock"></i>
-                        Извлечь сообщение
-                    </button>
-                    <button class="btn btn-secondary" id="extractResetBtn">
-                        <i class="fas fa-redo"></i>
-                        Сбросить
-                    </button>
+                    <button class="btn" id="extractBtn">Извлечь сообщение</button>
+                    <button class="btn btn-secondary" id="extractResetBtn">Сбросить</button>
                 </div>
             </div>
         </div>
 
         <footer>
-            StegoApp &copy; 2023 | LSB-стеганография | Сообщения скрываются в младших битах изображения
+            StegoApp | LSB-стеганография | Сообщения скрываются в младших битах изображения
         </footer>
     </div>
 
@@ -438,7 +361,15 @@
             function hideMessage() {
                 const imageFile = hideImageInput.files[0];
                 const message = secretMessage.value;
-                const filename = outputFilename.value || 'secret_image';
+                let filename = outputFilename.value.trim() || 'secret_image';
+
+                // Очистка имени файла от недопустимых символов
+                filename = filename.replace(/[\\/:*?"<>|]/g, '');
+                
+                // Добавление расширения .png, если его нет
+                if (!filename.toLowerCase().endsWith('.png')) {
+                    filename += '.png';
+                }
 
                 if (!imageFile) {
                     showAlert(errorAlert, 'Пожалуйста, выберите изображение!');
@@ -461,7 +392,7 @@
                         ctx.drawImage(img, 0, 0);
                         
                         // Преобразуем сообщение в бинарный формат + маркер конца
-                        const binaryMessage = message.split('')
+                        const binaryMessage = Array.from(message)
                             .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
                             .join('') + '0000000000000000'; // Два нулевых байта как маркер
                         
@@ -479,8 +410,10 @@
                         for (let i = 0; i < data.length; i += 4) {
                             if (messageIndex >= binaryMessage.length) break;
                             
-                            for (let j = 0; j < 3; j++) { // RGB каналы
+                            // Встраиваем в RGB каналы (3 бита на пиксель)
+                            for (let j = 0; j < 3; j++) {
                                 if (messageIndex < binaryMessage.length) {
+                                    // Заменяем младший бит
                                     data[i + j] = (data[i + j] & 0xFE) | parseInt(binaryMessage[messageIndex]);
                                     messageIndex++;
                                 }
@@ -489,13 +422,18 @@
                         
                         ctx.putImageData(imageData, 0, 0);
                         
-                        // Сохранение с указанным именем
-                        const link = document.createElement('a');
-                        link.download = `${filename}.png`;
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                        
-                        showAlert(successAlert, 'Сообщение успешно скрыто в изображении!');
+                        // Создаем Blob и скачиваем с правильным именем
+                        canvas.toBlob(function(blob) {
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = URL.createObjectURL(blob);
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(link.href);
+                            
+                            showAlert(successAlert, 'Сообщение успешно скрыто в изображении!');
+                        }, 'image/png', 1.0);
                     };
                     img.src = e.target.result;
                 };
@@ -524,32 +462,36 @@
                         const data = imageData.data;
                         let binaryMessage = '';
                         let message = '';
-                        let nullBytes = 0;
+                        let currentByte = '';
+                        let nullBytesCount = 0;
+                        const endMarker = '00000000'; // Маркер конца сообщения
                         
+                        // Читаем биты из изображения
                         for (let i = 0; i < data.length; i += 4) {
-                            for (let j = 0; j < 3; j++) { // RGB каналы
-                                binaryMessage += (data[i + j] & 1).toString();
+                            // Проверяем только RGB каналы (3 бита на пиксель)
+                            for (let j = 0; j < 3; j++) {
+                                // Получаем младший бит
+                                const bit = (data[i + j] & 1).toString();
+                                currentByte += bit;
                                 
-                                // Когда накопился полный байт (8 бит)
-                                if (binaryMessage.length % 8 === 0) {
-                                    const byte = binaryMessage.substr(-8);
-                                    const charCode = parseInt(byte, 2);
-                                    
-                                    if (charCode === 0) {
-                                        nullBytes++;
-                                        if (nullBytes >= 2) { // Два нулевых байта = конец
-                                            extractedMessage.value = message;
-                                            showAlert(successAlert, 'Сообщение успешно извлечено!');
-                                            return;
-                                        }
-                                    } else {
-                                        nullBytes = 0;
-                                        message += String.fromCharCode(charCode);
+                                // Когда собрали 8 бит (1 байт)
+                                if (currentByte.length === 8) {
+                                    // Проверяем на маркер конца
+                                    if (currentByte === endMarker) {
+                                        extractedMessage.value = message;
+                                        showAlert(successAlert, 'Сообщение успешно извлечено!');
+                                        return;
                                     }
+                                    
+                                    // Преобразуем биты в символ
+                                    const charCode = parseInt(currentByte, 2);
+                                    message += String.fromCharCode(charCode);
+                                    currentByte = '';
                                 }
                             }
                         }
                         
+                        // Если дошли до конца и не нашли маркер
                         extractedMessage.value = "Не удалось найти сообщение или оно повреждено";
                         showAlert(errorAlert, 'Маркер конца сообщения не найден!');
                     };
