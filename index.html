@@ -341,228 +341,236 @@
     </div>
 
     <script>
-        // DOM элементы
-        const elements = {
-            hideUpload: document.getElementById('hideUpload'),
-            hideImageInput: document.getElementById('hideImageInput'),
-            hidePreviewContainer: document.getElementById('hidePreviewContainer'),
-            hidePreviewImage: document.getElementById('hidePreviewImage'),
-            secretMessage: document.getElementById('secretMessage'),
-            outputFilename: document.getElementById('outputFilename'),
-            hideBtn: document.getElementById('hideBtn'),
-            hideResetBtn: document.getElementById('hideResetBtn'),
-            extractUpload: document.getElementById('extractUpload'),
-            extractImageInput: document.getElementById('extractImageInput'),
-            extractPreviewContainer: document.getElementById('extractPreviewContainer'),
-            extractPreviewImage: document.getElementById('extractPreviewImage'),
-            extractedMessage: document.getElementById('extractedMessage'),
-            extractBtn: document.getElementById('extractBtn'),
-            extractResetBtn: document.getElementById('extractResetBtn'),
-            successAlert: document.getElementById('successAlert'),
-            errorAlert: document.getElementById('errorAlert')
-        };
+        document.addEventListener('DOMContentLoaded', function() {
+            // Элементы
+            const hideUpload = document.getElementById('hideUpload');
+            const hideImageInput = document.getElementById('hideImageInput');
+            const hidePreviewContainer = document.getElementById('hidePreviewContainer');
+            const hidePreviewImage = document.getElementById('hidePreviewImage');
+            const secretMessage = document.getElementById('secretMessage');
+            const outputFilename = document.getElementById('outputFilename');
+            const hideBtn = document.getElementById('hideBtn');
+            const hideResetBtn = document.getElementById('hideResetBtn');
+            
+            const extractUpload = document.getElementById('extractUpload');
+            const extractImageInput = document.getElementById('extractImageInput');
+            const extractPreviewContainer = document.getElementById('extractPreviewContainer');
+            const extractPreviewImage = document.getElementById('extractPreviewImage');
+            const extractedMessage = document.getElementById('extractedMessage');
+            const extractBtn = document.getElementById('extractBtn');
+            const extractResetBtn = document.getElementById('extractResetBtn');
+            
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
 
-        // Обработчики событий
-        elements.hideImageInput.addEventListener('change', handleHideImageUpload);
-        elements.extractImageInput.addEventListener('change', handleExtractImageUpload);
-        elements.hideBtn.addEventListener('click', hideMessage);
-        elements.extractBtn.addEventListener('click', extractMessage);
-        elements.hideResetBtn.addEventListener('click', resetHideForm);
-        elements.extractResetBtn.addEventListener('click', resetExtractForm);
-
-        // Drag and Drop
-        setupDragAndDrop(elements.hideUpload, elements.hideImageInput);
-        setupDragAndDrop(elements.extractUpload, elements.extractImageInput);
-
-        // Функции
-        function handleHideImageUpload(e) {
-            const file = e.target.files[0];
-            if (file) {
-                displayImagePreview(file, elements.hidePreviewImage, elements.hidePreviewContainer);
-            }
-        }
-
-        function handleExtractImageUpload(e) {
-            const file = e.target.files[0];
-            if (file) {
-                displayImagePreview(file, elements.extractPreviewImage, elements.extractPreviewContainer);
-            }
-        }
-
-        function displayImagePreview(file, imgElement, container) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                imgElement.src = e.target.result;
-                container.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function setupDragAndDrop(dropZone, inputElement) {
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.style.borderColor = '#6200ee';
+            // Обработчики для блока скрытия
+            hideUpload.addEventListener('click', function() {
+                hideImageInput.click();
             });
 
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.style.borderColor = '#bdbdbd';
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.style.borderColor = '#bdbdbd';
-                
-                if (e.dataTransfer.files.length) {
-                    inputElement.files = e.dataTransfer.files;
-                    const event = new Event('change');
-                    inputElement.dispatchEvent(event);
+            hideImageInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    displayImagePreview(e.target.files[0], hidePreviewImage, hidePreviewContainer);
                 }
             });
-        }
 
-        function showAlert(alertElement, message) {
-            alertElement.textContent = message;
-            alertElement.style.display = 'block';
-            setTimeout(() => {
-                alertElement.style.display = 'none';
-            }, 5000);
-        }
+            // Обработчики для блока извлечения
+            extractUpload.addEventListener('click', function() {
+                extractImageInput.click();
+            });
 
-        function hideMessage() {
-            const imageFile = elements.hideImageInput.files[0];
-            const message = elements.secretMessage.value;
-            const filename = elements.outputFilename.value || 'secret_image';
+            extractImageInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    displayImagePreview(e.target.files[0], extractPreviewImage, extractPreviewContainer);
+                }
+            });
 
-            if (!imageFile) {
-                showAlert(elements.errorAlert, 'Пожалуйста, выберите изображение!');
-                return;
-            }
+            // Drag and Drop
+            setupDragAndDrop(hideUpload, hideImageInput);
+            setupDragAndDrop(extractUpload, extractImageInput);
 
-            if (!message) {
-                showAlert(elements.errorAlert, 'Пожалуйста, введите сообщение!');
-                return;
-            }
+            // Кнопки
+            hideBtn.addEventListener('click', hideMessage);
+            extractBtn.addEventListener('click', extractMessage);
+            hideResetBtn.addEventListener('click', resetHideForm);
+            extractResetBtn.addEventListener('click', resetExtractForm);
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Преобразуем сообщение в бинарный формат + маркер конца
-                    const binaryMessage = message.split('')
-                        .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
-                        .join('') + '0000000000000000'; // Два нулевых байта как маркер
-                    
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imageData.data;
-                    
-                    // Проверка вместимости
-                    if (binaryMessage.length > data.length * 0.25) {
-                        showAlert(elements.errorAlert, 'Сообщение слишком длинное для этого изображения!');
-                        return;
-                    }
-                    
-                    // Встраивание сообщения
-                    let messageIndex = 0;
-                    for (let i = 0; i < data.length; i += 4) {
-                        if (messageIndex >= binaryMessage.length) break;
-                        
-                        for (let j = 0; j < 3; j++) { // RGB каналы
-                            if (messageIndex < binaryMessage.length) {
-                                data[i + j] = (data[i + j] & 0xFE) | parseInt(binaryMessage[messageIndex]);
-                                messageIndex++;
-                            }
-                        }
-                    }
-                    
-                    ctx.putImageData(imageData, 0, 0);
-                    
-                    // Сохранение с указанным именем
-                    const link = document.createElement('a');
-                    link.download = `${filename}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    
-                    showAlert(elements.successAlert, 'Сообщение успешно скрыто в изображении!');
+            // Функции
+            function displayImagePreview(file, imgElement, container) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgElement.src = e.target.result;
+                    container.classList.remove('hidden');
                 };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(imageFile);
-        }
-
-        function extractMessage() {
-            const imageFile = elements.extractImageInput.files[0];
-            
-            if (!imageFile) {
-                showAlert(elements.errorAlert, 'Пожалуйста, выберите изображение!');
-                return;
+                reader.readAsDataURL(file);
             }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
+            function setupDragAndDrop(dropZone, inputElement) {
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#6200ee';
+                });
+
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.style.borderColor = '#bdbdbd';
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#bdbdbd';
                     
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imageData.data;
-                    let binaryMessage = '';
-                    let message = '';
-                    let nullBytes = 0;
-                    
-                    for (let i = 0; i < data.length; i += 4) {
-                        for (let j = 0; j < 3; j++) { // RGB каналы
-                            binaryMessage += (data[i + j] & 1).toString();
+                    if (e.dataTransfer.files.length) {
+                        inputElement.files = e.dataTransfer.files;
+                        const event = new Event('change');
+                        inputElement.dispatchEvent(event);
+                    }
+                });
+            }
+
+            function showAlert(alertElement, message) {
+                alertElement.textContent = message;
+                alertElement.style.display = 'block';
+                setTimeout(() => {
+                    alertElement.style.display = 'none';
+                }, 5000);
+            }
+
+            function hideMessage() {
+                const imageFile = hideImageInput.files[0];
+                const message = secretMessage.value;
+                const filename = outputFilename.value || 'secret_image';
+
+                if (!imageFile) {
+                    showAlert(errorAlert, 'Пожалуйста, выберите изображение!');
+                    return;
+                }
+
+                if (!message) {
+                    showAlert(errorAlert, 'Пожалуйста, введите сообщение!');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Преобразуем сообщение в бинарный формат + маркер конца
+                        const binaryMessage = message.split('')
+                            .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
+                            .join('') + '0000000000000000'; // Два нулевых байта как маркер
+                        
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        
+                        // Проверка вместимости
+                        if (binaryMessage.length > data.length * 0.25) {
+                            showAlert(errorAlert, 'Сообщение слишком длинное для этого изображения!');
+                            return;
+                        }
+                        
+                        // Встраивание сообщения
+                        let messageIndex = 0;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (messageIndex >= binaryMessage.length) break;
                             
-                            // Когда накопился полный байт (8 бит)
-                            if (binaryMessage.length % 8 === 0) {
-                                const byte = binaryMessage.substr(-8);
-                                const charCode = parseInt(byte, 2);
-                                
-                                if (charCode === 0) {
-                                    nullBytes++;
-                                    if (nullBytes >= 2) { // Два нулевых байта = конец
-                                        elements.extractedMessage.value = message;
-                                        showAlert(elements.successAlert, 'Сообщение успешно извлечено!');
-                                        return;
-                                    }
-                                } else {
-                                    nullBytes = 0;
-                                    message += String.fromCharCode(charCode);
+                            for (let j = 0; j < 3; j++) { // RGB каналы
+                                if (messageIndex < binaryMessage.length) {
+                                    data[i + j] = (data[i + j] & 0xFE) | parseInt(binaryMessage[messageIndex]);
+                                    messageIndex++;
                                 }
                             }
                         }
-                    }
-                    
-                    elements.extractedMessage.value = "Не удалось найти сообщение или оно повреждено";
-                    showAlert(elements.errorAlert, 'Маркер конца сообщения не найден!');
+                        
+                        ctx.putImageData(imageData, 0, 0);
+                        
+                        // Сохранение с указанным именем
+                        const link = document.createElement('a');
+                        link.download = `${filename}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                        
+                        showAlert(successAlert, 'Сообщение успешно скрыто в изображении!');
+                    };
+                    img.src = e.target.result;
                 };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(imageFile);
-        }
+                reader.readAsDataURL(imageFile);
+            }
 
-        function resetHideForm() {
-            elements.hideImageInput.value = '';
-            elements.hidePreviewContainer.classList.add('hidden');
-            elements.secretMessage.value = '';
-            elements.outputFilename.value = '';
-        }
+            function extractMessage() {
+                const imageFile = extractImageInput.files[0];
+                
+                if (!imageFile) {
+                    showAlert(errorAlert, 'Пожалуйста, выберите изображение!');
+                    return;
+                }
 
-        function resetExtractForm() {
-            elements.extractImageInput.value = '';
-            elements.extractPreviewContainer.classList.add('hidden');
-            elements.extractedMessage.value = '';
-        }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        let binaryMessage = '';
+                        let message = '';
+                        let nullBytes = 0;
+                        
+                        for (let i = 0; i < data.length; i += 4) {
+                            for (let j = 0; j < 3; j++) { // RGB каналы
+                                binaryMessage += (data[i + j] & 1).toString();
+                                
+                                // Когда накопился полный байт (8 бит)
+                                if (binaryMessage.length % 8 === 0) {
+                                    const byte = binaryMessage.substr(-8);
+                                    const charCode = parseInt(byte, 2);
+                                    
+                                    if (charCode === 0) {
+                                        nullBytes++;
+                                        if (nullBytes >= 2) { // Два нулевых байта = конец
+                                            extractedMessage.value = message;
+                                            showAlert(successAlert, 'Сообщение успешно извлечено!');
+                                            return;
+                                        }
+                                    } else {
+                                        nullBytes = 0;
+                                        message += String.fromCharCode(charCode);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        extractedMessage.value = "Не удалось найти сообщение или оно повреждено";
+                        showAlert(errorAlert, 'Маркер конца сообщения не найден!');
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(imageFile);
+            }
+
+            function resetHideForm() {
+                hideImageInput.value = '';
+                hidePreviewContainer.classList.add('hidden');
+                secretMessage.value = '';
+                outputFilename.value = '';
+            }
+
+            function resetExtractForm() {
+                extractImageInput.value = '';
+                extractPreviewContainer.classList.add('hidden');
+                extractedMessage.value = '';
+            }
+        });
     </script>
 </body>
 </html>
