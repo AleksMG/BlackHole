@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StegoApp | Улучшенная версия</title>
+    <title>StegoApp | Проверенная версия</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,7 +11,6 @@
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
-            color: #333;
         }
         .section {
             margin-bottom: 30px;
@@ -39,7 +38,7 @@
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 12px 20px;
             margin: 10px 0;
             cursor: pointer;
             border-radius: 4px;
@@ -49,18 +48,14 @@
         button:hover {
             background-color: #2980b9;
         }
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
         input[type="file"] {
-            margin: 10px 0;
+            margin: 15px 0;
             width: 100%;
         }
         canvas {
             max-width: 100%;
             display: block;
-            margin: 15px auto;
+            margin: 15px 0;
             border: 1px solid #ddd;
             background-color: #fff;
         }
@@ -91,47 +86,27 @@
             color: #e74c3c;
             border: 1px solid #e74c3c;
         }
-        .info {
-            background-color: #d6eaf8;
-            color: #2980b9;
-            border: 1px solid #3498db;
-        }
-        .progress-container {
-            width: 100%;
-            background-color: #ecf0f1;
-            border-radius: 4px;
+        .file-info {
             margin: 10px 0;
-            display: none;
-        }
-        .progress-bar {
-            height: 20px;
-            background-color: #3498db;
-            border-radius: 4px;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .char-counter {
-            text-align: right;
-            font-size: 12px;
+            font-size: 14px;
             color: #7f8c8d;
-            margin-top: -10px;
         }
     </style>
 </head>
 <body>
+    <h1 style="text-align: center; color: #2c3e50;">StegoApp</h1>
+    <p style="text-align: center; color: #7f8c8d;">Скрытие и извлечение текста в изображениях</p>
+
     <div class="section">
         <h2>Скрыть сообщение</h2>
         <input type="file" id="hideImageInput" accept="image/*">
-        <textarea id="secretMessage" placeholder="Введите сообщение для скрытия..."></textarea>
-        <div class="char-counter"><span id="charCount">0</span>/<span id="maxChars">0</span> символов</div>
+        <div id="hideFileInfo" class="file-info"></div>
+        <textarea id="secretMessage" placeholder="Введите текст сообщения..."></textarea>
         <div class="filename-input">
-            <label for="outputFilename">Имя файла (без расширения):</label>
+            <label for="outputFilename"><b>Имя файла для сохранения:</b></label>
             <input type="text" id="outputFilename" placeholder="secret_image">
         </div>
-        <button id="hideBtn" disabled>Скрыть сообщение</button>
-        <div class="progress-container" id="hideProgress">
-            <div class="progress-bar" id="hideProgressBar"></div>
-        </div>
+        <button id="hideBtn">Скрыть сообщение</button>
         <div id="hideAlert" class="alert"></div>
         <canvas id="hideCanvas"></canvas>
     </div>
@@ -139,229 +114,182 @@
     <div class="section">
         <h2>Извлечь сообщение</h2>
         <input type="file" id="extractImageInput" accept="image/*">
-        <textarea id="extractedMessage" placeholder="Здесь появится извлеченное сообщение..." readonly></textarea>
-        <button id="extractBtn" disabled>Извлечь сообщение</button>
-        <div class="progress-container" id="extractProgress">
-            <div class="progress-bar" id="extractProgressBar"></div>
-        </div>
+        <div id="extractFileInfo" class="file-info"></div>
+        <textarea id="extractedMessage" placeholder="Здесь появится извлечённое сообщение..." readonly></textarea>
+        <button id="extractBtn">Извлечь сообщение</button>
         <div id="extractAlert" class="alert"></div>
         <canvas id="extractCanvas"></canvas>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Элементы
+            // Элементы интерфейса
             const hideImageInput = document.getElementById('hideImageInput');
+            const hideFileInfo = document.getElementById('hideFileInfo');
             const secretMessage = document.getElementById('secretMessage');
             const outputFilename = document.getElementById('outputFilename');
             const hideBtn = document.getElementById('hideBtn');
             const hideAlert = document.getElementById('hideAlert');
             const hideCanvas = document.getElementById('hideCanvas');
-            const hideProgress = document.getElementById('hideProgress');
-            const hideProgressBar = document.getElementById('hideProgressBar');
-            const charCount = document.getElementById('charCount');
-            const maxChars = document.getElementById('maxChars');
             
             const extractImageInput = document.getElementById('extractImageInput');
+            const extractFileInfo = document.getElementById('extractFileInfo');
             const extractedMessage = document.getElementById('extractedMessage');
             const extractBtn = document.getElementById('extractBtn');
             const extractAlert = document.getElementById('extractAlert');
             const extractCanvas = document.getElementById('extractCanvas');
-            const extractProgress = document.getElementById('extractProgress');
-            const extractProgressBar = document.getElementById('extractProgressBar');
-
-            // Константы
-            const END_MARKER = '00000000'; // 8 нулей как маркер конца
-            const CHUNK_SIZE = 10000; // Размер чанка для обработки с прогрессом
 
             // Показать уведомление
-            function showAlert(element, message, type) {
+            function showAlert(element, message, isSuccess) {
                 element.textContent = message;
-                element.className = 'alert ' + type;
+                element.className = 'alert ' + (isSuccess ? 'success' : 'error');
                 element.style.display = 'block';
                 setTimeout(() => {
                     element.style.display = 'none';
                 }, 5000);
             }
 
-            // Обновление счетчика символов
-            function updateCharCounter() {
-                charCount.textContent = secretMessage.value.length;
-            }
-
-            // Показать прогресс
-            function showProgress(progressElement, progressBar, percent) {
-                progressElement.style.display = 'block';
-                progressBar.style.width = percent + '%';
-                if (percent >= 100) {
-                    setTimeout(() => {
-                        progressElement.style.display = 'none';
-                        progressBar.style.width = '0%';
-                    }, 1000);
-                }
-            }
-
-            // Проверка, можно ли скрыть сообщение
-            function checkHideConditions() {
-                hideBtn.disabled = !(hideImageInput.files.length > 0 && secretMessage.value.trim().length > 0);
-            }
-
-            // Проверка, можно ли извлечь сообщение
-            function checkExtractConditions() {
-                extractBtn.disabled = !(extractImageInput.files.length > 0);
-            }
-
-            // Инициализация событий
-            hideImageInput.addEventListener('change', function() {
-                checkHideConditions();
-                if (this.files.length > 0) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = new Image();
-                        img.onload = function() {
-                            const ctx = hideCanvas.getContext('2d');
-                            hideCanvas.width = img.width;
-                            hideCanvas.height = img.height;
-                            ctx.drawImage(img, 0, 0);
-                            
-                            // Рассчет максимального количества символов
-                            const imageData = ctx.getImageData(0, 0, hideCanvas.width, hideCanvas.height);
-                            const maxBits = Math.floor(imageData.data.length / 4 * 3);
-                            const maxCharsValue = Math.floor(maxBits / 8) - 1; // -1 для маркера конца
-                            maxChars.textContent = maxCharsValue;
-                            
-                            showAlert(hideAlert, `Максимальная длина сообщения: ${maxCharsValue} символов`, 'info');
-                        };
-                        img.src = e.target.result;
-                    };
-                    reader.readAsDataURL(this.files[0]);
-                }
-            });
-
-            secretMessage.addEventListener('input', function() {
-                updateCharCounter();
-                checkHideConditions();
-            });
-
-            extractImageInput.addEventListener('change', checkExtractConditions);
-
-            // Скрыть сообщение
-            hideBtn.addEventListener('click', async function() {
-                const file = hideImageInput.files[0];
-                const message = secretMessage.value.trim();
-                let filename = (outputFilename.value.trim() || 'secret_image').replace(/[\\/:*?"<>|]/g, '');
-                
-                if (!filename) filename = 'secret_image';
-                filename += '.png';
-
-                try {
-                    hideBtn.disabled = true;
-                    showProgress(hideProgress, hideProgressBar, 0);
-
-                    const img = await loadImage(file);
-                    const ctx = hideCanvas.getContext('2d');
-                    hideCanvas.width = img.width;
-                    hideCanvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Преобразование сообщения в бинарный формат
-                    const binaryMessage = Array.from(message)
-                        .map(char => {
-                            const code = char.charCodeAt(0);
-                            if (code > 255) {
-                                throw new Error('Поддерживаются только символы ASCII (0-255)');
-                            }
-                            return code.toString(2).padStart(8, '0');
-                        })
-                        .join('') + END_MARKER;
-                    
-                    const imageData = ctx.getImageData(0, 0, hideCanvas.width, hideCanvas.height);
-                    const data = imageData.data;
-                    
-                    // Проверка вместимости
-                    const maxBits = Math.floor(data.length / 4 * 3);
-                    if (binaryMessage.length > maxBits) {
-                        throw new Error(`Сообщение слишком длинное! Максимум: ${Math.floor(maxBits/8)-1} символов`);
+            // Обновить информацию о файле
+            function updateFileInfo(inputElement, infoElement) {
+                inputElement.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        const file = this.files[0];
+                        infoElement.innerHTML = `
+                            <b>Выбран файл:</b> ${file.name}<br>
+                            <b>Размер:</b> ${(file.size / 1024).toFixed(2)} KB<br>
+                            <b>Тип:</b> ${file.type}
+                        `;
+                    } else {
+                        infoElement.textContent = '';
                     }
-                    
-                    // Встраивание сообщения с прогрессом
-                    let bitIndex = 0;
-                    const totalPixels = data.length / 4;
-                    let processedPixels = 0;
-                    
-                    while (bitIndex < binaryMessage.length) {
-                        const end = Math.min(processedPixels + CHUNK_SIZE, totalPixels);
+                });
+            }
+
+            // Инициализация
+            updateFileInfo(hideImageInput, hideFileInfo);
+            updateFileInfo(extractImageInput, extractFileInfo);
+
+            // Функция для скрытия сообщения
+            hideBtn.addEventListener('click', function() {
+                const file = hideImageInput.files[0];
+                const message = secretMessage.value;
+                let filename = outputFilename.value.trim() || 'secret_image';
+                
+                // Очистка имени файла от недопустимых символов
+                filename = filename.replace(/[\\/:*?"<>|]/g, '') + '.png';
+
+                if (!file) {
+                    showAlert(hideAlert, 'Ошибка: Выберите изображение!', false);
+                    return;
+                }
+
+                if (!message) {
+                    showAlert(hideAlert, 'Ошибка: Введите сообщение для скрытия!', false);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const ctx = hideCanvas.getContext('2d');
+                        hideCanvas.width = img.width;
+                        hideCanvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
                         
-                        for (let i = processedPixels * 4; i < end * 4 && bitIndex < binaryMessage.length; i += 4) {
+                        // Преобразуем сообщение в бинарный формат
+                        const binaryArray = [];
+                        for (let i = 0; i < message.length; i++) {
+                            const binary = message.charCodeAt(i).toString(2).padStart(8, '0');
+                            binaryArray.push(binary);
+                        }
+                        const binaryMessage = binaryArray.join('') + '1111111111111111'; // Маркер конца
+                        
+                        const imageData = ctx.getImageData(0, 0, hideCanvas.width, hideCanvas.height);
+                        const data = imageData.data;
+                        
+                        // Проверка вместимости
+                        const maxMessageLength = Math.floor(data.length / 4 * 3 / 8) * 8;
+                        if (binaryMessage.length > maxMessageLength) {
+                            showAlert(hideAlert, `Ошибка: Сообщение слишком длинное! Максимум: ${maxMessageLength/8} символов`, false);
+                            return;
+                        }
+                        
+                        // Встраивание сообщения
+                        let bitIndex = 0;
+                        for (let i = 0; i < data.length && bitIndex < binaryMessage.length; i += 4) {
+                            // Встраиваем в RGB каналы (по 1 биту на канал)
                             for (let j = 0; j < 3 && bitIndex < binaryMessage.length; j++) {
+                                // Заменяем младший бит
                                 data[i + j] = (data[i + j] & 0xFE) | parseInt(binaryMessage[bitIndex]);
                                 bitIndex++;
                             }
                         }
                         
-                        processedPixels = end;
-                        const progress = Math.min(100, Math.floor((bitIndex / binaryMessage.length) * 100);
-                        showProgress(hideProgress, hideProgressBar, progress);
+                        ctx.putImageData(imageData, 0, 0);
                         
-                        // Даем браузеру "подышать" для анимации
-                        if (bitIndex < binaryMessage.length) {
-                            await new Promise(resolve => setTimeout(resolve, 0));
-                        }
-                    }
-                    
-                    ctx.putImageData(imageData, 0, 0);
-                    
-                    // Сохранение изображения
-                    hideCanvas.toBlob(function(blob) {
-                        const link = document.createElement('a');
-                        link.download = filename;
-                        link.href = URL.createObjectURL(blob);
-                        link.click();
-                        showAlert(hideAlert, 'Сообщение успешно скрыто в изображении!', 'success');
-                        hideBtn.disabled = false;
-                    }, 'image/png');
-                    
-                } catch (error) {
-                    showAlert(hideAlert, error.message, 'error');
-                    hideBtn.disabled = false;
-                    hideProgress.style.display = 'none';
-                }
+                        // Сохранение изображения
+                        hideCanvas.toBlob(function(blob) {
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = URL.createObjectURL(blob);
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                            showAlert(hideAlert, `Успех: Сообщение скрыто в файле ${filename}`, true);
+                        }, 'image/png', 1.0);
+                    };
+                    img.onerror = function() {
+                        showAlert(hideAlert, 'Ошибка: Не удалось загрузить изображение', false);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() {
+                    showAlert(hideAlert, 'Ошибка чтения файла', false);
+                };
+                reader.readAsDataURL(file);
             });
 
-            // Извлечь сообщение
-            extractBtn.addEventListener('click', async function() {
+            // Функция для извлечения сообщения
+            extractBtn.addEventListener('click', function() {
                 const file = extractImageInput.files[0];
                 
-                try {
-                    extractBtn.disabled = true;
-                    showProgress(extractProgress, extractProgressBar, 0);
+                if (!file) {
+                    showAlert(extractAlert, 'Ошибка: Выберите изображение!', false);
+                    return;
+                }
 
-                    const img = await loadImage(file);
-                    const ctx = extractCanvas.getContext('2d');
-                    extractCanvas.width = img.width;
-                    extractCanvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    
-                    const imageData = ctx.getImageData(0, 0, extractCanvas.width, extractCanvas.height);
-                    const data = imageData.data;
-                    let binaryMessage = '';
-                    let currentByte = '';
-                    let messageFound = false;
-                    
-                    // Извлечение с прогрессом
-                    const totalPixels = data.length / 4;
-                    let processedPixels = 0;
-                    
-                    while (processedPixels < totalPixels && !messageFound) {
-                        const end = Math.min(processedPixels + CHUNK_SIZE, totalPixels);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const ctx = extractCanvas.getContext('2d');
+                        extractCanvas.width = img.width;
+                        extractCanvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
                         
-                        for (let i = processedPixels * 4; i < end * 4 && !messageFound; i += 4) {
-                            for (let j = 0; j < 3 && !messageFound; j++) {
-                                currentByte += (data[i + j] & 1).toString();
+                        const imageData = ctx.getImageData(0, 0, extractCanvas.width, extractCanvas.height);
+                        const data = imageData.data;
+                        let binaryMessage = '';
+                        let currentByte = '';
+                        const endMarker = '11111111'; // Маркер конца
+                        let messageFound = false;
+                        
+                        // Извлечение битов
+                        for (let i = 0; i < data.length && !messageFound; i += 4) {
+                            // Извлекаем из RGB каналов
+                            for (let j = 0; j < 3; j++) {
+                                const bit = (data[i + j] & 1).toString();
+                                currentByte += bit;
                                 
                                 if (currentByte.length === 8) {
-                                    if (currentByte === END_MARKER) {
+                                    // Проверяем на маркер конца (два подряд)
+                                    if (currentByte === endMarker && 
+                                        binaryMessage.length > 0 && 
+                                        binaryMessage.slice(-8) === endMarker) {
                                         messageFound = true;
+                                        binaryMessage = binaryMessage.slice(0, -8); // Удаляем маркер
                                         break;
                                     }
                                     binaryMessage += currentByte;
@@ -370,61 +298,30 @@
                             }
                         }
                         
-                        processedPixels = end;
-                        const progress = Math.min(100, Math.floor((processedPixels / totalPixels) * 100));
-                        showProgress(extractProgress, extractProgressBar, progress);
-                        
-                        if (!messageFound) {
-                            await new Promise(resolve => setTimeout(resolve, 0));
+                        if (messageFound && binaryMessage.length > 0) {
+                            // Преобразуем бинарные данные в текст
+                            let message = '';
+                            for (let i = 0; i < binaryMessage.length; i += 8) {
+                                const byte = binaryMessage.substr(i, 8);
+                                message += String.fromCharCode(parseInt(byte, 2));
+                            }
+                            extractedMessage.value = message;
+                            showAlert(extractAlert, 'Успех: Сообщение извлечено!', true);
+                        } else {
+                            extractedMessage.value = '';
+                            showAlert(extractAlert, 'Ошибка: Сообщение не найдено!', false);
                         }
-                    }
-                    
-                    if (messageFound && binaryMessage.length > 0) {
-                        let message = '';
-                        for (let i = 0; i < binaryMessage.length; i += 8) {
-                            const byte = binaryMessage.substr(i, 8);
-                            message += String.fromCharCode(parseInt(byte, 2));
-                        }
-                        extractedMessage.value = message;
-                        showAlert(extractAlert, 'Сообщение успешно извлечено!', 'success');
-                    } else {
-                        extractedMessage.value = '';
-                        showAlert(extractAlert, 'Сообщение не найдено в изображении', 'error');
-                    }
-                    
-                    extractBtn.disabled = false;
-                } catch (error) {
-                    showAlert(extractAlert, 'Ошибка при извлечении: ' + error.message, 'error');
-                    extractBtn.disabled = false;
-                    extractProgress.style.display = 'none';
-                }
+                    };
+                    img.onerror = function() {
+                        showAlert(extractAlert, 'Ошибка: Не удалось загрузить изображение', false);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() {
+                    showAlert(extractAlert, 'Ошибка чтения файла', false);
+                };
+                reader.readAsDataURL(file);
             });
-
-            // Вспомогательная функция для загрузки изображения
-            function loadImage(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = new Image();
-                        img.onload = function() {
-                            resolve(img);
-                        };
-                        img.onerror = function() {
-                            reject(new Error('Ошибка загрузки изображения'));
-                        };
-                        img.src = e.target.result;
-                    };
-                    reader.onerror = function() {
-                        reject(new Error('Ошибка чтения файла'));
-                    };
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            // Инициализация
-            updateCharCounter();
-            checkHideConditions();
-            checkExtractConditions();
         });
     </script>
 </body>
