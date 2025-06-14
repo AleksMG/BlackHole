@@ -1,95 +1,158 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Бинарное кодирование в картинку</title>
+    <title>Стеганография: скрытие бинарного кода в изображении</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        canvas { border: 1px solid #000; margin: 10px 0; }
-        textarea { width: 100%; height: 100px; }
-        button { margin: 10px 0; padding: 8px; }
+        canvas { border: 1px solid #000; margin: 10px 0; max-width: 500px; }
+        .container { display: flex; gap: 20px; }
+        .column { flex: 1; }
+        button { margin: 5px 0; padding: 8px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        textarea { width: 100%; height: 80px; }
+        input[type="file"] { margin: 10px 0; }
     </style>
 </head>
 <body>
-    <h2>Текст → Бинарный код → Изображение</h2>
-    <textarea id="inputText" placeholder="Введите текст..."></textarea><br>
-    <button onclick="textToBinaryImage()">Преобразовать в бинарное изображение</button><br>
-    <canvas id="binaryCanvas"></canvas>
-
-    <h2>Изображение → Бинарный код → Текст</h2>
-    <input type="file" id="imageUpload" accept="image/*"><br>
-    <button onclick="binaryImageToText()">Декодировать из изображения</button><br>
-    <p id="outputText"></p>
+    <h1>Стеганография (LSB-метод)</h1>
+    <div class="container">
+        <div class="column">
+            <h2>1. Скрыть сообщение в изображении</h2>
+            <input type="file" id="originalImage" accept="image/png, image/jpeg"><br>
+            <textarea id="secretMessage" placeholder="Введите секретное сообщение..."></textarea><br>
+            <button onclick="hideMessage()">Спрятать сообщение</button>
+            <canvas id="encodedCanvas"></canvas>
+            <button onclick="downloadImage()" id="downloadBtn" disabled>Скачать изображение</button>
+        </div>
+        
+        <div class="column">
+            <h2>2. Извлечь сообщение из изображения</h2>
+            <input type="file" id="encodedImage" accept="image/png, image/jpeg"><br>
+            <button onclick="extractMessage()">Извлечь сообщение</button>
+            <p id="extractedMessage"></p>
+            <canvas id="decodedCanvas"></canvas>
+        </div>
+    </div>
 
     <script>
-        // 1. Текст → Бинарная картинка
-        function textToBinaryImage() {
-            const text = document.getElementById('inputText').value;
-            if (!text) return alert('Введите текст!');
+        // Глобальные переменные
+        let encodedImageData = null;
 
-            // Текст → Бинарная строка (например, "Hello" → "01001000 01100101...")
-            const binaryString = text.split('').map(char => 
-                char.charCodeAt(0).toString(2).padStart(8, '0')
-            ).join('');
-
-            // Создаем изображение из бинарного кода
-            const canvas = document.getElementById('binaryCanvas');
-            const ctx = canvas.getContext('2d');
-            const size = Math.ceil(Math.sqrt(binaryString.length));
-            canvas.width = size;
-            canvas.height = size;
-
-            // Закрашиваем пиксели: 1=белый, 0=черный
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, size, size);
-            ctx.fillStyle = 'white';
-
-            for (let i = 0; i < binaryString.length; i++) {
-                if (binaryString[i] === '1') {
-                    const x = i % size;
-                    const y = Math.floor(i / size);
-                    ctx.fillRect(x, y, 1, 1);
-                }
+        // 1. Скрытие сообщения в изображении (LSB-метод)
+        function hideMessage() {
+            const fileInput = document.getElementById('originalImage');
+            const message = document.getElementById('secretMessage').value;
+            
+            if (!fileInput.files[0] || !message) {
+                alert("Загрузите изображение и введите сообщение!");
+                return;
             }
-        }
-
-        // 2. Бинарная картинка → Текст
-        function binaryImageToText() {
-            const fileInput = document.getElementById('imageUpload');
-            if (!fileInput.files[0]) return alert('Загрузите изображение!');
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const canvas = document.createElement('canvas');
+                    const canvas = document.getElementById('encodedCanvas');
                     canvas.width = img.width;
                     canvas.height = img.height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
-
-                    // Анализируем пиксели
-                    let binaryString = '';
-                    for (let y = 0; y < img.height; y++) {
-                        for (let x = 0; x < img.width; x++) {
-                            const pixel = ctx.getImageData(x, y, 1, 1).data;
-                            // Если пиксель белый (R=255) → '1', иначе '0'
-                            binaryString += pixel[0] > 128 ? '1' : '0';
+                    
+                    // Преобразуем сообщение в бинарный формат
+                    const binaryMessage = message.split('')
+                        .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
+                        .join('') + '00000000'; // Маркер конца сообщения
+                    
+                    // Получаем данные изображения
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    // Проверяем, поместится ли сообщение
+                    if (binaryMessage.length > data.length * 0.25) {
+                        alert("Сообщение слишком длинное для этого изображения!");
+                        return;
+                    }
+                    
+                    // Встраиваем сообщение в LSB (младшие биты)
+                    let messageIndex = 0;
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (messageIndex >= binaryMessage.length) break;
+                        
+                        // Модифицируем LSB каждого цветового канала (R, G, B)
+                        for (let j = 0; j < 3; j++) {
+                            if (messageIndex < binaryMessage.length) {
+                                data[i + j] = (data[i + j] & 0xFE) | parseInt(binaryMessage[messageIndex]);
+                                messageIndex++;
+                            }
                         }
                     }
-
-                    // Бинарная строка → Текст
-                    let text = '';
-                    for (let i = 0; i < binaryString.length; i += 8) {
-                        const byte = binaryString.substr(i, 8);
-                        if (byte.length < 8) break;
-                        text += String.fromCharCode(parseInt(byte, 2));
-                    }
-
-                    document.getElementById('outputText').textContent = text;
+                    
+                    ctx.putImageData(imageData, 0, 0);
+                    encodedImageData = canvas.toDataURL('image/png');
+                    document.getElementById('downloadBtn').disabled = false;
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(fileInput.files[0]);
+        }
+
+        // 2. Извлечение сообщения из изображения
+        function extractMessage() {
+            const fileInput = document.getElementById('encodedImage');
+            if (!fileInput.files[0]) {
+                alert("Загрузите изображение!");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('decodedCanvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Извлекаем биты из LSB
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    let binaryMessage = '';
+                    let message = '';
+                    
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Читаем LSB каждого цветового канала
+                        for (let j = 0; j < 3; j++) {
+                            binaryMessage += (data[i + j] & 1).toString();
+                            
+                            // Проверяем на маркер конца сообщения (8 нулей)
+                            if (binaryMessage.length % 8 === 0) {
+                                const byte = binaryMessage.substr(-8);
+                                if (byte === '00000000') {
+                                    // Преобразуем бинарную строку в текст
+                                    for (let k = 0; k < binaryMessage.length - 8; k += 8) {
+                                        const charCode = parseInt(binaryMessage.substr(k, 8), 2);
+                                        message += String.fromCharCode(charCode);
+                                    }
+                                    document.getElementById('extractedMessage').textContent = message;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+
+        // 3. Скачивание изображения со скрытым сообщением
+        function downloadImage() {
+            if (!encodedImageData) return;
+            
+            const link = document.createElement('a');
+            link.download = 'secret_image.png';
+            link.href = encodedImageData;
+            link.click();
         }
     </script>
 </body>
