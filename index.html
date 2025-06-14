@@ -1,195 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Черная Дыра | Кинематографичная версия</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <title>Бинарное кодирование в картинку</title>
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background: #000;
-            color: white;
-            font-family: 'Arial', sans-serif;
-        }
-        #info {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            opacity: 0.7;
-            z-index: 100;
-        }
-        canvas { 
-            display: block; 
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { border: 1px solid #000; margin: 10px 0; }
+        textarea { width: 100%; height: 100px; }
+        button { margin: 10px 0; padding: 8px; }
     </style>
 </head>
 <body>
-    <div id="info">From CellToSingularity community</div>
+    <h2>Текст → Бинарный код → Изображение</h2>
+    <textarea id="inputText" placeholder="Введите текст..."></textarea><br>
+    <button onclick="textToBinaryImage()">Преобразовать в бинарное изображение</button><br>
+    <canvas id="binaryCanvas"></canvas>
+
+    <h2>Изображение → Бинарный код → Текст</h2>
+    <input type="file" id="imageUpload" accept="image/*"><br>
+    <button onclick="binaryImageToText()">Декодировать из изображения</button><br>
+    <p id="outputText"></p>
+
     <script>
-        // Инициализация сцены
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
+        // 1. Текст → Бинарная картинка
+        function textToBinaryImage() {
+            const text = document.getElementById('inputText').value;
+            if (!text) return alert('Введите текст!');
 
-        // Настройка камеры
-        camera.position.z = 5;
+            // Текст → Бинарная строка (например, "Hello" → "01001000 01100101...")
+            const binaryString = text.split('').map(char => 
+                char.charCodeAt(0).toString(2).padStart(8, '0')
+            ).join('');
 
-        // Параметры черной дыры
-        const blackHoleParams = {
-            radius: 1.5,
-            distortion: 0.8,
-            accretionSpeed: 0.02,
-            glowIntensity: 2.5
-        };
+            // Создаем изображение из бинарного кода
+            const canvas = document.getElementById('binaryCanvas');
+            const ctx = canvas.getContext('2d');
+            const size = Math.ceil(Math.sqrt(binaryString.length));
+            canvas.width = size;
+            canvas.height = size;
 
-        // Создание черной дыры (сфера с черным материалом)
-        const geometry = new THREE.SphereGeometry(blackHoleParams.radius, 64, 64);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0x000000,
-            side: THREE.DoubleSide
-        });
-        const blackHole = new THREE.Mesh(geometry, material);
-        scene.add(blackHole);
+            // Закрашиваем пиксели: 1=белый, 0=черный
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = 'white';
 
-        // Аккреционный диск
-        const diskGeometry = new THREE.TorusGeometry(blackHoleParams.radius * 2.5, 0.3, 64, 256);
-        const diskMaterial = new THREE.MeshStandardMaterial({
-            color: 0x5500ff,
-            emissive: 0xff00aa,
-            emissiveIntensity: 2,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.9
-        });
-        const accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial);
-        accretionDisk.rotation.x = Math.PI / 2;
-        scene.add(accretionDisk);
-
-        // Гравитационное линзирование (искажение пространства)
-        const distortionGeometry = new THREE.SphereGeometry(blackHoleParams.radius * 3, 64, 64);
-        const distortionMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                distortion: { value: blackHoleParams.distortion }
-            },
-            vertexShader: `
-                uniform float time;
-                uniform float distortion;
-                varying vec3 vPosition;
-                void main() {
-                    vPosition = position;
-                    float wave = sin(time + position.y * 10.0) * 0.1;
-                    vec3 newPosition = position * (1.0 + distortion + wave);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-                }
-            `,
-            fragmentShader: `
-                varying vec3 vPosition;
-                void main() {
-                    float intensity = pow(0.7 - length(vPosition), 2.0);
-                    gl_FragColor = vec4(0.3, 0.1, 0.8, intensity * 0.3);
-                }
-            `,
-            side: THREE.BackSide,
-            transparent: true,
-            blending: THREE.AdditiveBlending
-        });
-        const spaceDistortion = new THREE.Mesh(distortionGeometry, distortionMaterial);
-        scene.add(spaceDistortion);
-
-        // Частицы (звезды и пыль)
-        const particlesGeometry = new THREE.BufferGeometry();
-        const particlesCount = 5000;
-        const posArray = new Float32Array(particlesCount * 3);
-        for(let i = 0; i < particlesCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 20;
-        }
-        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const particlesMaterial = new THREE.PointsMaterial({
-            size: 0.02,
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
-        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-        scene.add(particlesMesh);
-
-        // Эффект свечения (Bloom)
-        const bloomParams = {
-            exposure: 1,
-            bloomStrength: 2.5,
-            bloomThreshold: 0,
-            bloomRadius: 1
-        };
-        const renderScene = new THREE.RenderPass(scene, camera);
-        const bloomPass = new THREE.UnrealBloomPass(
-            new THREE.Vector2(window.innerWidth, window.innerHeight),
-            bloomParams.bloomStrength,
-            bloomParams.bloomRadius,
-            bloomParams.bloomThreshold
-        );
-        const composer = new THREE.EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
-
-        // Анимация
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            // Вращение аккреционного диска
-            accretionDisk.rotation.z += blackHoleParams.accretionSpeed;
-            
-            // Искажение пространства
-            distortionMaterial.uniforms.time.value += 0.01;
-            
-            // Движение частиц к центру
-            const positions = particlesGeometry.attributes.position.array;
-            for(let i = 0; i < particlesCount * 3; i += 3) {
-                const x = positions[i];
-                const y = positions[i+1];
-                const z = positions[i+2];
-                
-                const distance = Math.sqrt(x*x + y*y + z*z);
-                if(distance < blackHoleParams.radius * 0.8) {
-                    // Респавн частиц за пределами сцены
-                    positions[i] = (Math.random() - 0.5) * 10;
-                    positions[i+1] = (Math.random() - 0.5) * 10;
-                    positions[i+2] = (Math.random() - 0.5) * 10;
-                } else {
-                    // Притяжение к центру
-                    const speed = 0.01 * (1 + Math.random() * 0.5);
-                    positions[i] -= x * speed;
-                    positions[i+1] -= y * speed;
-                    positions[i+2] -= z * speed;
+            for (let i = 0; i < binaryString.length; i++) {
+                if (binaryString[i] === '1') {
+                    const x = i % size;
+                    const y = Math.floor(i / size);
+                    ctx.fillRect(x, y, 1, 1);
                 }
             }
-            particlesGeometry.attributes.position.needsUpdate = true;
-            
-            // Рендер с эффектами
-            composer.render();
         }
 
-        // Обработка изменения размера окна
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
+        // 2. Бинарная картинка → Текст
+        function binaryImageToText() {
+            const fileInput = document.getElementById('imageUpload');
+            if (!fileInput.files[0]) return alert('Загрузите изображение!');
 
-        animate();
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    // Анализируем пиксели
+                    let binaryString = '';
+                    for (let y = 0; y < img.height; y++) {
+                        for (let x = 0; x < img.width; x++) {
+                            const pixel = ctx.getImageData(x, y, 1, 1).data;
+                            // Если пиксель белый (R=255) → '1', иначе '0'
+                            binaryString += pixel[0] > 128 ? '1' : '0';
+                        }
+                    }
+
+                    // Бинарная строка → Текст
+                    let text = '';
+                    for (let i = 0; i < binaryString.length; i += 8) {
+                        const byte = binaryString.substr(i, 8);
+                        if (byte.length < 8) break;
+                        text += String.fromCharCode(parseInt(byte, 2));
+                    }
+
+                    document.getElementById('outputText').textContent = text;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
     </script>
 </body>
 </html>
